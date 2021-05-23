@@ -1,0 +1,34 @@
+metadata:
+  generateName: call-template-
+  namespace: argo
+spec:
+  entrypoint: steps
+  templates:
+
+  - name: whalesay
+    inputs:
+      parameters:
+        - name: random-number
+    container:
+      image: docker/whalesay
+      command: [cowsay]
+      args: ["Random number: {{inputs.parameters.random-number}}"]
+
+  - name: steps
+    steps:
+    - - name: call-random-number-generator
+        templateRef: 
+          name: random-number-generator
+          template: generator
+        arguments:
+          parameters:
+            - name: min
+              value: 1
+            - name: max
+              value: 5
+    - - name: call-whalesay
+        template: whalesay
+        arguments:
+          parameters:
+            - name: random-number
+              value: "{{steps.call-random-number-generator.outputs.result}}"

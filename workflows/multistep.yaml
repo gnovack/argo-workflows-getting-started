@@ -1,0 +1,66 @@
+metadata:
+  generateName: multistep-
+  namespace: argo
+spec:
+  entrypoint: workflow
+  arguments:
+    parameters:
+      - name: salutation
+        value: Greetings
+      - name: username
+        value: Argonaut
+  templates:
+
+  - name: greeting
+    inputs:
+      parameters:
+        - name: salutation
+    script:
+      image: python:3.8
+      command: [python]
+      source: |
+        salutation = '{{inputs.parameters.salutation}}'
+        print(f'{salutation},')
+
+  - name: user
+    inputs:
+      parameters:
+        - name: username
+    script:
+      image: alpine
+      command: [/bin/sh]
+      source: |
+        echo "{{inputs.parameters.username}}!"
+
+  - name: whalesay
+    inputs:
+      parameters:
+        - name: salutation
+        - name: username
+    container:
+      image: docker/whalesay
+      command: [cowsay]
+      args: ["{{inputs.parameters.salutation}} {{inputs.parameters.username}}"]
+
+  - name: workflow
+    steps:
+    - - name: get-greeting
+        template: greeting
+        arguments:
+          parameters:
+            - name: salutation
+              value: "{{workflow.parameters.salutation}}"
+      - name: get-title
+        template: user
+        arguments:
+          parameters:
+            - name: username
+              value: "{{workflow.parameters.username}}"
+    - - name: whalesay
+        template: whalesay
+        arguments:
+          parameters:
+            - name: salutation
+              value: "{{steps.get-greeting.outputs.result}}"
+            - name: username
+              value: "{{steps.get-title.outputs.result}}"
